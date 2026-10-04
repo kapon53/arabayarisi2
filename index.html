@@ -34,7 +34,7 @@ canvas{ display:block; width:100%; height:100%; background:#0a0e14; }
 #combo-wrap{ position:absolute; left:calc(14px + var(--sal)); top:calc(150px + var(--sat)); transition:opacity .1s; opacity:0; }
 #combo-val{ font-family:var(--fd); font-weight:900; font-size:24px; color:var(--amber); text-shadow:0 0 15px var(--amber); }
 
-/* MOBILE CONTROLS */
+/* MOBILE CONTROLS - (Tüm tuşlar mobilde yukarı taşındı) */
 .control-btn{ position:absolute; bottom:calc(45px + var(--sab)); width:55px; height:55px; border-radius:50%; font-family:var(--fd); font-weight:900; font-size:10px; display:flex; align-items:center; justify-content:center; pointer-events:auto; letter-spacing:1px; transition:transform .1s; z-index:10; color:#fff; border:2px solid; user-select:none; -webkit-user-select:none; touch-action:none; }
 .control-btn:active,.control-btn.active{ transform:scale(0.9); }
 #btn-left{ left:calc(10px + var(--sal)); background:radial-gradient(circle at 35% 30%,rgba(255,255,255,0.2),rgba(255,255,255,0.05)); border-color:rgba(255,255,255,0.4); }
@@ -206,7 +206,7 @@ let isPaused = false;
 let booted = false;
 function $(id) { return document.getElementById(id); }
 
-/* ============== CRAZYGAMES SDK (safe if SDK is missing / blocked by AdBlock) ============== */
+/* ============== CRAZYGAMES SDK ============== */
 const CG = {
   ready: false, playing: false,
   sdk() { return (window.CrazyGames && window.CrazyGames.SDK) || null; },
@@ -224,6 +224,8 @@ const CG = {
   gameplayStart() { if (this.playing) return; this.playing = true; try { if (this.ready) this.sdk().game.gameplayStart(); } catch (e) {} },
   gameplayStop() { if (!this.playing) return; this.playing = false; try { if (this.ready) this.sdk().game.gameplayStop(); } catch (e) {} },
   locale() { try { if (this.ready) return this.sdk().user.systemInfo.locale || ''; } catch (e) {} return ''; },
+  
+  /* REKLAM CALLBACK DÜZELTMESİ BURADA */
   adBreak() {
     this.gameplayStop();
     adPlaying = true; stopEngine(); stopNitroSound();
@@ -238,7 +240,11 @@ const CG = {
       };
       const s = this.sdk();
       if (!this.ready || !s || !s.ad) { done(); return; }
-      try { s.ad.requestAd('midgame', { adStarted: began, adFinished: done, adError: done }); }
+      
+      try { 
+        // SDK v3 zorunlu callbacks yapısı eklendi
+        s.ad.requestAd('midgame', { callbacks: { adStarted: began, adFinished: done, adError: done } }); 
+      }
       catch (e) { done(); }
     });
   }
@@ -261,7 +267,7 @@ const translations = {
   en: { dist: "DISTANCE", speed: "SPEED", best: "BEST", nos: "NOS", combo: "COMBO", horn: "HORN", brake: "BRAKE", gas: "GAS", title1: "NITRO TRAFFIC", title2: "ESCAPE", oneway: "ONE WAY", twoway: "TWO WAY", play: "PLAY", howto: "HOW TO PLAY", lb: "BEST SCORES", lb_title: "🏆 BEST SCORES 🏆", lb_ow: "ONE WAY BEST", lb_tw: "TWO WAY BEST", mainmenu: "MAIN MENU", guide_title: "SURVIVAL GUIDE", guide_ctrl: "CONTROLS", guide_tct: "TACTICS", g_c1: "• <b>W / Up Arrow:</b> Gas", g_c2: "• <b>S / Down Arrow:</b> Brake", g_c3: "• <b>A - D / Left-Right:</b> Steer", g_c4: "• <b>SPACE:</b> NOS (Boost)", g_c5: "• <b>K:</b> Horn", g_c6: "• <b>P:</b> Pause", g_t1: "• Do a <b>NEAR MISS</b> to build your combo.", g_t2: "• <b>CAUTION:</b> Driving on lines breaks combo!", g_t3: "• <b>WRONG WAY:</b> Drive in oncoming traffic for points.", paused: "PAUSED", resume: "RESUME", restart: "RESTART", crashed: "CRASHED!", newbest: "✨ NEW BEST! ✨", tryagain: "TRY AGAIN", pop_combo: "COMBO LOST!", pop_wrong: "WRONG WAY", pop_overtake: "OVERTAKE", pop_near: "NEAR MISS!", pop_nos: "+NOS", desk_hint: "Keyboard: W,A,S,D or Arrows. SPACE for NOS." },
   tr: { dist: "MESAFE", speed: "HIZ", best: "REKOR", nos: "NOS", combo: "KOMBO", horn: "KORNA", brake: "FREN", gas: "GAZ", title1: "NITRO TRAFFIC", title2: "ESCAPE", oneway: "TEK YÖN", twoway: "ÇİFT YÖN", play: "YARIŞA BAŞLA", howto: "NASIL OYNANIR?", lb: "REKORLAR", lb_title: "🏆 REKORLAR 🏆", lb_ow: "TEK YÖN REKORU", lb_tw: "ÇİFT YÖN REKORU", mainmenu: "ANA MENÜ", guide_title: "HAYATTA KALMA REHBERİ", guide_ctrl: "KONTROLLER", guide_tct: "TAKTİKLER", g_c1: "• <b>W / Yukarı:</b> Gaz", g_c2: "• <b>S / Aşağı:</b> Fren", g_c3: "• <b>A - D / Sol-Sağ:</b> Yön", g_c4: "• <b>BOŞLUK:</b> NOS", g_c5: "• <b>K:</b> Korna", g_c6: "• <b>P:</b> Duraklat", g_t1: "• Araçlara <b>MAKAS</b> atarak kombo yap.", g_t2: "• <b>DİKKAT:</b> Çizgilerde gitmek komboyu sıfırlar!", g_t3: "• <b>TERS YÖN:</b> Karşı şeritte ekstra puan kazan.", paused: "DURAKLATILDI", resume: "DEVAM ET", restart: "YENİDEN BAŞLAT", crashed: "ÇARPTIN!", newbest: "✨ YENİ REKOR! ✨", tryagain: "TEKRAR DENE", pop_combo: "KOMBO SIFIRLANDI!", pop_wrong: "TERS YÖN", pop_overtake: "SOLLAMA", pop_near: "MAKAS!", pop_nos: "+NOS", desk_hint: "Klavye: W,A,S,D veya Oklar. NOS için BOŞLUK." },
   es: { dist: "DISTANCIA", speed: "VELOCIDAD", best: "MÁXIMO", nos: "NITRO", combo: "COMBO", horn: "BOCINA", brake: "FRENO", gas: "ACELERAR", title1: "NITRO TRAFFIC", title2: "ESCAPE", oneway: "UN SENTIDO", twoway: "DOBLE SENTIDO", play: "JUGAR", howto: "CÓMO JUGAR", lb: "RÉCORDS", lb_title: "🏆 RÉCORDS 🏆", lb_ow: "MÁXIMO UN SENTIDO", lb_tw: "MÁXIMO DOBLE SENTIDO", mainmenu: "MENÚ PRINCIPAL", guide_title: "GUÍA", guide_ctrl: "CONTROLES", guide_tct: "TÁCTICAS", g_c1: "• <b>W / Arriba:</b> Acelerar", g_c2: "• <b>S / Abajo:</b> Freno", g_c3: "• <b>A - D / Izq-Der:</b> Girar", g_c4: "• <b>ESPACIO:</b> Nitro", g_c5: "• <b>K:</b> Bocina", g_c6: "• <b>P:</b> Pausa", g_t1: "• Haz <b>CORTES</b> para subir combo.", g_t2: "• <b>CUIDADO:</b> ¡Conducir en líneas rompe combo!", g_t3: "• <b>VÍA CONTRARIA:</b> Gana más puntos.", paused: "PAUSADO", resume: "REANUDAR", restart: "REINICIAR", crashed: "¡CHOCASTE!", newbest: "✨ ¡NUEVO RÉCORD! ✨", tryagain: "REINTENTAR", pop_combo: "¡COMBO PERDIDO!", pop_wrong: "VÍA CONTRARIA", pop_overtake: "ADELANTO", pop_near: "¡CASI!", pop_nos: "+NITRO", desk_hint: "Teclado: W,A,S,D o Flechas. ESPACIO para Nitro." },
-  ru: { dist: "РАССТОЯНИЕ", speed: "СКОРОСТЬ", best: "РЕКОРД", nos: "НИТРО", combo: "КОМБО", horn: "СИГНАЛ", brake: "ТОРМОЗ", gas: "ГАЗ", title1: "NITRO TRAFFIC", title2: "ESCAPE", oneway: "ОДНА СТОРОНА", twoway: "ВСТРЕЧНАЯ", play: "ИГРАТЬ", howto: "КАК ИГРАТЬ", lb: "РЕКОРДЫ", lb_title: "🏆 РЕКОРДЫ 🏆", lb_ow: "РЕКОРД (ОДНА)", lb_tw: "РЕКОРД (ВСТРЕЧНАЯ)", mainmenu: "МЕНЮ", guide_title: "РУКОВОДСТВО", guide_ctrl: "УПРАВЛЕНИЕ", guide_ctrl: "УПРАВЛЕНИЕ", guide_tct: "ТАКТИКА", g_c1: "• <b>W / Вверх:</b> Газ", g_c2: "• <b>S / Вниз:</b> Тормоз", g_c3: "• <b>A - D:</b> Руль", g_c4: "• <b>ПРОБЕЛ:</b> Нитро", g_c5: "• <b>K:</b> Сигнал", g_c6: "• <b>P:</b> Пауза", g_t1: "• Делайте <b>ОПАСНЫЕ ОБГОНЫ</b>.", g_t2: "• <b>ОСТОРОЖНО:</b> Линии сбрасывают комбо!", g_t3: "• <b>ВСТРЕЧКА:</b> Дает очки.", paused: "ПАУЗА", resume: "ПРОДОЛЖИТЬ", restart: "РЕСТАРТ", crashed: "АВАРИЯ!", newbest: "✨ НОВЫЙ РЕКОРД! ✨", tryagain: "ЕЩЕ РАЗ", pop_combo: "СБРОС КОМБО!", pop_wrong: "ВСТРЕЧКА", pop_overtake: "ОБГОН", pop_near: "БЛИЗКО!", pop_nos: "+НИТРО", desk_hint: "Клавиатура: W,A,S,D. ПРОБЕЛ - Нитро." },
+  ru: { dist: "РАССТОЯНИЕ", speed: "СКОРОСТЬ", best: "РЕКОРД", nos: "НИТРО", combo: "КОМБО", horn: "СИГНАЛ", brake: "ТОРМОЗ", gas: "ГАЗ", title1: "NITRO TRAFFIC", title2: "ESCAPE", oneway: "ОДНА СТОРОНА", twoway: "ВСТРЕЧНАЯ", play: "ИГРАТЬ", howto: "КАК ИГРАТЬ", lb: "РЕКОРДЫ", lb_title: "🏆 РЕКОРДЫ 🏆", lb_ow: "РЕКОРД (ОДНА)", lb_tw: "РЕКОРД (ВСТРЕЧНАЯ)", mainmenu: "МЕНЮ", guide_title: "РУКОВОДСТВО", guide_ctrl: "УПРАВЛЕНИЕ", guide_tct: "ТАКТИКА", g_c1: "• <b>W / Вверх:</b> Газ", g_c2: "• <b>S / Вниз:</b> Тормоз", g_c3: "• <b>A - D:</b> Руль", g_c4: "• <b>ПРОБЕЛ:</b> Нитро", g_c5: "• <b>K:</b> Сигнал", g_c6: "• <b>P:</b> Пауза", g_t1: "• Делайте <b>ОПАСНЫЕ ОБГОНЫ</b>.", g_t2: "• <b>ОСТОРОЖНО:</b> Линии сбрасывают комбо!", g_t3: "• <b>ВСТРЕЧКА:</b> Дает очки.", paused: "ПАУЗА", resume: "ПРОДОЛЖИТЬ", restart: "РЕСТАРТ", crashed: "АВАРИЯ!", newbest: "✨ НОВЫЙ РЕКОРД! ✨", tryagain: "ЕЩЕ РАЗ", pop_combo: "СБРОС КОМБО!", pop_wrong: "ВСТРЕЧКА", pop_overtake: "ОБГОН", pop_near: "БЛИЗКО!", pop_nos: "+НИТРО", desk_hint: "Клавиатура: W,A,S,D. ПРОБЕЛ - Нитро." },
   zh: { dist: "距离", speed: "速度", best: "最高分", nos: "氮气", combo: "连击", horn: "喇叭", brake: "刹车", gas: "油门", title1: "NITRO TRAFFIC", title2: "ESCAPE", oneway: "单向", twoway: "双向", play: "开始", howto: "怎么玩", lb: "最高分", lb_title: "🏆 最高分 🏆", lb_ow: "单向最高分", lb_tw: "双向最高分", mainmenu: "主菜单", guide_title: "生存指南", guide_ctrl: "控制", guide_tct: "战术", g_c1: "• <b>W / 上:</b> 油门", g_c2: "• <b>S / 下:</b> 刹车", g_c3: "• <b>A - D:</b> 转向", g_c4: "• <b>空格键:</b> 氮气", g_c5: "• <b>K:</b> 喇叭", g_c6: "• <b>P:</b> 暂停", g_t1: "• <b>擦肩而过</b>增加连击。", g_t2: "• <b>警告：</b> 压线会打断连击！", g_t3: "• <b>逆行：</b> 逆向行驶获大量分数。", paused: "已暂停", resume: "继续", restart: "重新开始", crashed: "撞车了！", newbest: "✨ 新纪录！ ✨", tryagain: "再试一次", pop_combo: "连击中断！", pop_wrong: "逆行", pop_overtake: "超车", pop_near: "惊险避让！", pop_nos: "+氮气", desk_hint: "键盘：W,A,S,D或方向键。空格键使用氮气。" }
 };
 let currentLang = 'en';
@@ -773,7 +779,7 @@ function drawCar(x, y, w, h, col, facingDown, isP, brk, sig, carType) {
     const trailerH = h - cabH - 6, trailerY = facingDown ? cabY + cabH + 6 : -h / 2;
     G.fillStyle = col; roundRectPath(G, -w / 2, trailerY, w, trailerH, 3); G.fill(); G.strokeStyle = 'rgba(0,0,0,0.45)'; G.lineWidth = 1.5; G.stroke();
     G.strokeStyle = 'rgba(0,0,0,0.15)'; G.lineWidth = 1;
-    for (let ly = trailerY + 10; ly < trailerY + trailerH - 6; ly += 14) { G.beginPath(); G.moveTo(-w / 2 + 3, ly); G.lineTo(w / 2 - 3, ly); G.stroke(); }
+    for (let ly = trailerY + 10; trailerY + trailerH - 6 > ly; ly += 14) { G.beginPath(); G.moveTo(-w / 2 + 3, ly); G.lineTo(w / 2 - 3, ly); G.stroke(); }
     G.fillStyle = 'rgba(255,60,60,0.7)'; G.fillRect(-w / 2 + 1, trailerY + trailerH - 8, w - 2, 3);
   } else if (carType === 'bus') {
     G.fillStyle = col; roundRectPath(G, -w / 2, -h / 2, w, h, 8); G.fill(); G.strokeStyle = 'rgba(0,0,0,0.5)'; G.lineWidth = 1.5; G.stroke();
