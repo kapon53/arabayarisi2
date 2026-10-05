@@ -224,34 +224,36 @@ const CG = {
   gameplayStart() { if (this.playing) return; this.playing = true; try { if (this.ready) this.sdk().game.gameplayStart(); } catch (e) {} },
   gameplayStop() { if (!this.playing) return; this.playing = false; try { if (this.ready) this.sdk().game.gameplayStop(); } catch (e) {} },
   locale() { try { if (this.ready) return this.sdk().user.systemInfo.locale || ''; } catch (e) {} return ''; },
-  
+
   adBreak() {
     this.gameplayStop();
     adPlaying = true; stopEngine(); stopNitroSound();
     return new Promise(resolve => {
-      let finished = false;
-      
-      // GÜVENLİK KİLİDİ: 2 saniye içinde reklam yüklenmezse (veya AdBlock varsa) otomatik devam et.
-      let failsafe = setTimeout(() => { done(); }, 2000);
+      let finished = false, started = false;
 
-      const began = () => { 
-        clearTimeout(failsafe); // Reklam başarıyla başladı, zamanlayıcıyı iptal et.
-        if (audioCtx) { try { audioCtx.suspend(); } catch (e) {} } 
+      // Failsafe: only applies while the ad has NOT started (no ad inventory / AdBlock / SDK hang).
+      // Once the ad starts, we wait for adFinished/adError with no timeout.
+      let failsafe = setTimeout(() => { if (!started) done(); }, 6000);
+
+      const began = () => {
+        started = true;
+        clearTimeout(failsafe);
+        if (audioCtx) { try { audioCtx.suspend(); } catch (e) {} }
       };
       const done = () => {
+        // always try to restore audio, even if done() was already called by the failsafe
+        if (audioCtx) { try { audioCtx.resume(); } catch (e) {} }
         if (finished) return; finished = true;
         clearTimeout(failsafe);
         adPlaying = false;
-        if (audioCtx) { try { audioCtx.resume(); } catch (e) {} }
         resolve();
       };
-      
+
       const s = this.sdk();
       if (!this.ready || !s || !s.ad) { done(); return; }
-      
-      try { 
-        // SDK v3'e uygun callbacks eklentisi.
-        s.ad.requestAd('midgame', { callbacks: { adStarted: began, adFinished: done, adError: done } }); 
+
+      try {
+        s.ad.requestAd('midgame', { adStarted: began, adFinished: done, adError: done });
       }
       catch (e) { done(); }
     });
@@ -314,9 +316,20 @@ calcLayout();
 
 const player = { x: LANE_X[2], y: H - 150, w: 30, h: 54, targetX: LANE_X[2], color: '#00e5ff', lane: 2 };
 
+const traffic = [], pickups = [], particles = [], popups = [], skids = [];
+
 function resizeGame() {
+  // keep the player's relative position on the road when the size changes (e.g. fullscreen)
+  const relX = (player.x - ROAD_X) / (ROAD_W || 1);
+  const relT = (player.targetX - ROAD_X) / (ROAD_W || 1);
   calcLayout();
-  player.x = LANE_X[player.lane]; player.targetX = LANE_X[player.lane]; player.y = H - 150;
+  player.x = ROAD_X + relX * ROAD_W; player.targetX = ROAD_X + relT * ROAD_W;
+  player.lane = clamp(Math.floor((player.x - ROAD_X) / LANE_W), 0, 3);
+  player.y = H - 150;
+  // re-snap traffic and pickups to the new lane coordinates
+  traffic.forEach(c => { c.x = LANE_X[c.lane]; c.targetLaneX = LANE_X[c.targetLane]; });
+  pickups.forEach(p => { p.x = LANE_X[p.lane || 0]; });
+  skids.length = 0;
 }
 window.addEventListener('resize', resizeGame);
 window.addEventListener('orientationchange', resizeGame);
@@ -343,6 +356,7 @@ $('mod-twoway').onclick = () => { isTwoWay = true; best = bestTwoWay; $('mod-two
 function goToMenu() {
   $('gameover-screen').classList.remove('on'); $('pause-screen').classList.remove('on'); $('start-screen').classList.add('on');
   CG.gameplayStop();
+  stopEngine(); stopNitroSound();
   state = 'title'; resetGameVars(); $('start-best').textContent = best + 'm';
 }
 $('btn-start').onclick = (e) => { e.preventDefault(); blurActive(); if (adPlaying || !booted) return; startGame(); };
@@ -358,11 +372,13 @@ $('btn-menu-from-leaderboard').onclick = (e) => { e.preventDefault(); $('leaderb
 /* ============== AUDIO ============== */
 let audioCtx = null, engineOsc = null, engineOsc2 = null, engineGain = null, nitroNoise = null, nitroGain = null;
 let volState = 2;
+const VOL_ICONS = ['🔇', '🔉', '🔊'];
 
 $('btn-mute').onclick = (e) => {
   e.preventDefault(); e.target.blur();
   volState = (volState === 2) ? 1 : (volState === 1 ? 0 : 2);
-  e.target.innerText = ['🔇', '🔉', '🔊'][volState];
+  e.target.innerText = VOL_ICONS[volState];
+  dataSet('trafficEscape_vol', volState);
   if (engineGain) engineGain.gain.value = volState === 2 ? 0.02 : (volState === 1 ? 0.005 : 0);
   if (volState === 0) {
     try { if (engineOsc) engineOsc.stop(); if (engineOsc2) engineOsc2.stop(); } catch (er) {}
@@ -488,7 +504,6 @@ let gasHeld = false, brakeHeld = false, nosHeld = false, leftHeld = false, right
 let nitroFuel = 100, nitroDepleted = false;
 const NITRO_DRAIN = 0.4, NITRO_AUTO_REGEN = 0.05;
 const bgStars = []; for (let i = 0; i < 80; i++) bgStars.push({ x: Math.random(), y: Math.random(), s: Math.random() * 1.5 + 0.5, a: Math.random() });
-const traffic = [], pickups = [], particles = [], popups = [], skids = [];
 let spawnTimer = 40, pickupTimer = 220, wrongWayTimer = 0, wrongWayArmed = true, lineRideTimer = 0;
 
 function burst(x, y, c1, c2, n) { for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, s = 1.5 + Math.random() * 6; particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1, life: 1, col: Math.random() > 0.5 ? c1 : c2, size: 2 + Math.random() * 4, gravity: 0.15 + Math.random() * 0.1 }); } }
@@ -517,13 +532,13 @@ bindBtn($('btn-horn'), () => { if (state === 'play' && !isPaused) { sfx('horn');
 const GAME_KEYS = ['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'KeyA', 'KeyD', 'KeyW', 'KeyS', 'KeyK'];
 window.addEventListener('keydown', (e) => {
   if (GAME_KEYS.includes(e.code)) e.preventDefault();
-  if (e.code === 'KeyP') { if (!adPlaying) setPaused(!isPaused); return; }
+  if (e.code === 'KeyP') { if (!adPlaying && !e.repeat) setPaused(!isPaused); return; }
   if (e.code === 'ArrowLeft' || e.code === 'KeyA') leftHeld = true;
   if (e.code === 'ArrowRight' || e.code === 'KeyD') rightHeld = true;
   if (e.code === 'ArrowUp' || e.code === 'KeyW') gasHeld = true;
   if (e.code === 'ArrowDown' || e.code === 'KeyS') brakeHeld = true;
   if (e.code === 'Space') nosHeld = true;
-  if (e.code === 'KeyK' && state === 'play' && !isPaused) { sfx('horn'); triggerHorn(); }
+  if (e.code === 'KeyK' && !e.repeat && state === 'play' && !isPaused) { sfx('horn'); triggerHorn(); }
 }, { passive: false });
 window.addEventListener('keyup', (e) => {
   if (GAME_KEYS.includes(e.code)) e.preventDefault();
@@ -533,6 +548,8 @@ window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowDown' || e.code === 'KeyS') brakeHeld = false;
   if (e.code === 'Space') { nosHeld = false; sfx('nitro_off'); }
 }, { passive: false });
+/* release all keys if the window loses focus (prevents stuck keys) */
+window.addEventListener('blur', () => { gasHeld = brakeHeld = nosHeld = leftHeld = rightHeld = false; });
 
 /* ============== HELPERS ============== */
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -607,7 +624,7 @@ function spawnTraffic() {
   if (traffic.some(c => c.lane === lane && Math.abs(c.y - spawnY) < (h / 2 + c.h / 2 + 60))) return;
   traffic.push({ x: laneX, y: spawnY, w, h, lane, ownSpeed, color: forcedColor || CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)], oncoming, passed: false, nearMissAwarded: false, type, isCrazy, aiState: 'wait', aiTimer: (type === 'racer' ? 20 : 60) + Math.random() * 50, turnSignal: 0, targetLaneX: laneX, targetLane: lane });
 }
-function spawnPickup() { pickups.push({ x: LANE_X[Math.floor(Math.random() * 4)], y: -60, r: 12, collected: false }); }
+function spawnPickup() { const lane = Math.floor(Math.random() * 4); pickups.push({ x: LANE_X[lane], lane, y: -60, r: 12, collected: false }); }
 
 function triggerHorn() {
   traffic.forEach(c => {
@@ -902,6 +919,9 @@ async function boot() {
   bestTwoWay = parseInt(dataGet('trafficEscape_TwoWay', '0'), 10) || 0;
   best = isTwoWay ? bestTwoWay : bestOneWay;
   $('start-best').textContent = best + 'm';
+  const sv = parseInt(dataGet('trafficEscape_vol', '2'), 10);
+  volState = (sv === 0 || sv === 1 || sv === 2) ? sv : 2;
+  $('btn-mute').innerText = VOL_ICONS[volState];
   setLang(detectLang());
   booted = true;
   CG.loadingStop();
