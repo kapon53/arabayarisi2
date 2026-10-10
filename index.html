@@ -1283,7 +1283,7 @@ const Game = (function () {
     dpr = d; W = Math.round(w * d); H = Math.round(h * d); cv.width = W; cv.height = H; HY = Math.round(H * (H > W * 1.2 ? 0.35 : 0.4)); ZW = W * (H > W * 1.2 ? 1.3 : 1);
   }
   const TEST_DIST = 0; /* TEST: the police chase starts this many metres in (port is at 6500). Set to 0 before uploading. */
-  const TEST_HEAT = 4; /* TEST: the police chase starts at this star level (1 = normal). Set to 1 before uploading. */
+  const TEST_HEAT = 1; /* TEST: the police chase starts at this star level (1 = normal). Set to 1 before uploading. */
   function start(two, pol) { cop = !!pol; twoWay = cop ? false : two; mode = 'play'; resetRun(); if (cop) phaseOff = 2; if (cop && TEST_HEAT > 1) { travelled = [0, 0, 900, 1900, 3300, 4900][TEST_HEAT] / MPU; copT = 0.5; blockT = 3; } if (cop && TEST_DIST > 0) { travelled = TEST_DIST / MPU; copT = 0.5; blockT = 3; } if (cop) harborSetup(); else harborRestore(); }
   function setMode(m, two) { mode = m; if (m === 'menu') { cop = false; if (two !== undefined) twoWay = two; harborRestore(); resetRun(); speed = 4500; } }
   function setLoadout(car, u, two, dm) { carDef = car; pw = car.pw || PW; upg = u; dmg = dm || { e: 0, c: 0, n: 0 }; if (two !== undefined) twoWay = two; }
@@ -2177,7 +2177,7 @@ const Game = (function () {
 const $ = id => document.getElementById(id);
 const CARS = Game.CARS;
 const TEST_UNLOCK = false; /* TEST: true unlocks every car, paint and location. Keep false for the real game. */
-const TEST_COINS = 1000000; /* TEST: one-time coin gift on first load. Set to 0 before uploading. */
+const TEST_COINS = 0; /* TEST: one-time coin gift on first load. Set to 0 before uploading. */
 const UPG_COST = [300, 800, 1800, 3500, 6000];
 const UPG_KEYS = ['nitro', 'handling', 'engine'];
 
