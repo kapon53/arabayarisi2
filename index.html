@@ -1998,7 +1998,7 @@ const Game = (function () {
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
     if (lit) { ctx.strokeStyle = 'rgba(0,229,255,' + (0.1 + 0.3 * dk) + ')'; ctx.lineWidth = r * 0.05; ctx.beginPath(); ctx.arc(cx, cy, r * 0.97, 0, 7); ctx.stroke(); }
     if (redFrom < 1) { ctx.strokeStyle = 'rgba(255,50,60,.85)'; ctx.lineWidth = r * 0.07; ctx.beginPath(); ctx.arc(cx, cy, r * 0.86, a0 + sw * redFrom, a0 + sw); ctx.stroke(); }
-    const n = Math.round(vmax / major); ctx.textAlign = 'center'; ctx.font = '700 ' + Math.round(r * 0.19) + 'px Arial';
+    const n = Math.round(vmax / major); ctx.textAlign = 'center'; ctx.font = '700 ' + Math.round(r * 0.14) + 'px Arial';
     for (let i = 0; i <= n; i++) for (let m = 0; m < minorPer; m++) {
       const f = (i + m / minorPer) / n; if (f > 1.0001) break;
       const a = a0 + sw * f, big = m === 0, ca = Math.cos(a), sa = Math.sin(a), red = f >= redFrom;
@@ -2006,7 +2006,7 @@ const Game = (function () {
       ctx.beginPath(); ctx.moveTo(cx + ca * r * (big ? 0.74 : 0.8), cy + sa * r * (big ? 0.74 : 0.8)); ctx.lineTo(cx + ca * r * 0.92, cy + sa * r * 0.92); ctx.stroke();
       if (big && i % (n > 7 ? 2 : 1) === 0) { ctx.fillStyle = red ? '#ff7a82' : (lit ? '#a8ecff' : '#e9f1ff'); ctx.fillText(String(Math.round(i * major)), cx + ca * r * 0.57, cy + sa * r * 0.57 + r * 0.06); }
     }
-    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.font = '800 ' + Math.round(r * 0.15) + 'px Arial'; ctx.fillText(label, cx, cy + r * 0.8);
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.font = '800 ' + Math.round(r * 0.11) + 'px Arial'; ctx.fillText(label, cx, cy + r * 0.8);
     const a = a0 + sw * clamp(val / vmax, 0, 1.03), ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca;
     ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.moveTo(cx + 2 + ca * r * 0.88, cy + 3 + sa * r * 0.88); ctx.lineTo(cx + 2 + nx * r * 0.05, cy + 3 + ny * r * 0.05); ctx.lineTo(cx + 2 - ca * r * 0.18, cy + 3 - sa * r * 0.18); ctx.lineTo(cx + 2 - nx * r * 0.05, cy + 3 - ny * r * 0.05); ctx.closePath(); ctx.fill();
     ctx.shadowColor = '#ff2d3d'; ctx.shadowBlur = r * 0.18; ctx.fillStyle = '#ff3b4e';
@@ -2092,9 +2092,9 @@ const Game = (function () {
     { const dw = w * 0.17, dh = h * 0.098, dx = w / 2 - dw / 2, dy = h * 0.868, slipBlink = slipOn && Math.floor(time * 6) % 2 === 0;
       g = ctx.createLinearGradient(0, dy, 0, dy + dh); g.addColorStop(0, '#0a1a22'); g.addColorStop(1, '#03090d'); ctx.fillStyle = g; rrect(dx, dy, dw, dh, 7); ctx.fill();
       ctx.strokeStyle = 'rgba(0,229,255,.45)'; ctx.lineWidth = Math.max(1, dpr); ctx.stroke();
-      ctx.textAlign = 'center'; ctx.fillStyle = '#00e5ff'; ctx.font = '800 ' + Math.round(dh * 0.5) + 'px "Arial Black",Arial'; ctx.fillText(String(Math.round(dashSp)), w / 2 - dw * 0.05, dy + dh * 0.58);
-      ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '700 ' + Math.round(dh * 0.17) + 'px Arial'; ctx.fillText('KM/H', w / 2 - dw * 0.05, dy + dh * 0.76);
-      ctx.fillStyle = '#c6ff3d'; ctx.font = '800 ' + Math.round(dh * 0.5) + 'px Arial'; ctx.fillText(speed < 300 ? 'N' : String(gi + 1), dx + dw * 0.85, dy + dh * 0.56);
+      ctx.textAlign = 'center'; ctx.fillStyle = '#00e5ff'; ctx.font = '800 ' + Math.round(dh * 0.4) + 'px "Arial Black",Arial'; ctx.fillText(String(Math.round(dashSp)), w / 2 - dw * 0.05, dy + dh * 0.58);
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = '700 ' + Math.round(dh * 0.13) + 'px Arial'; ctx.fillText('KM/H', w / 2 - dw * 0.05, dy + dh * 0.76);
+      ctx.fillStyle = '#c6ff3d'; ctx.font = '800 ' + Math.round(dh * 0.4) + 'px Arial'; ctx.fillText(speed < 300 ? 'N' : String(gi + 1), dx + dw * 0.85, dy + dh * 0.56);
       ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(dx + dw * 0.08, dy + dh * 0.84, dw * 0.84, dh * 0.07); ctx.fillStyle = nitro < 20 ? '#ffb84d' : '#00e5ff'; ctx.fillRect(dx + dw * 0.08, dy + dh * 0.84, dw * 0.84 * clamp(nitro / 100, 0, 1), dh * 0.07);
       ctx.font = '800 ' + Math.round(dh * 0.15) + 'px Arial'; ctx.fillStyle = slipBlink ? '#ff3b4e' : (thSnow > 0.2 ? '#9fe8ff' : thRain > 0.2 ? '#7fb8ff' : '#7dff9a'); ctx.fillText(slipBlink ? 'SLIP!' : (thSnow > 0.2 ? 'ICE RISK' : thRain > 0.2 ? 'WET ROAD' : 'DRY'), w / 2 + dw * 0.0, dy + dh * 0.2); }
     /* warning lamps on the dash top */
